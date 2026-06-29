@@ -1,0 +1,605 @@
+{
+  "configById": {
+    "Markdown!hyper_custom_md1": {
+      "renderMode": "static",
+      "markdown": "Hello, world!"
+    },
+    "Markdown!hyper_custom_md2": {
+      "renderMode": "static",
+      "markdown": "Hello, world!"
+    },
+    "Tab!hyper_custom_inner": {
+      "activeTabIdx": 1,
+      "tabs": [
+        {
+          "title": "Tab 1",
+          "layout": "Markdown!hyper_custom_md1"
+        },
+        {
+          "title": "Tab 2",
+          "layout": "Markdown!hyper_custom_md2"
+        }
+      ]
+    },
+    "CallService!4d701jv": {
+      "requestPayload": "{\n  \"command\": \"auto_exposure\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "auto_exp",
+      "serviceName": "/hsi/camera_commands",
+      "buttonColor": "#7ec450"
+    },
+    "CallService!25ida8f": {
+      "requestPayload": "{\n  \"command\": \"white_reference_full\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "wr_full",
+      "serviceName": "/hsi/camera_commands",
+      "buttonColor": "#7ec450"
+    },
+    "CallService!2wxnnk5": {
+      "requestPayload": "{\n  \"command\": \"white_reference_reference\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "wr_ref",
+      "serviceName": "/hsi/camera_commands",
+      "buttonColor": "#7ec450"
+    },
+    "CallService!da6y26": {
+      "requestPayload": "{\n  \"command\": \"dark_reference\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "dark",
+      "serviceName": "/hsi/camera_commands",
+      "buttonColor": "#7ec450"
+    },
+    "CallService!31iyrpg": {
+      "requestPayload": "{\n  \"command\": \"test_frame\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "test",
+      "serviceName": "/hsi/camera_commands",
+      "buttonColor": "#7ec450"
+    },
+    "CallService!1ogpr57": {
+      "requestPayload": "{\n  \"command\": \"manual\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "manual",
+      "serviceName": "/hsi/camera_commands",
+      "buttonColor": "#7ec450"
+    },
+    "CallService!kweg00": {
+      "requestPayload": "{\n  \"command\": \"timelapse\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "timelapse",
+      "serviceName": "/hsi/camera_commands",
+      "buttonColor": "#7ec450"
+    },
+    "CallService!4bbjpq2": {
+      "requestPayload": "{\n  \"command\": \"idle\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "stop",
+      "serviceName": "/hsi/camera_commands",
+      "buttonColor": "#7ec450"
+    },
+    "RawMessages!311156j": {
+      "defaultExpanded": false,
+      "topicPath": "/system_profile"
+    },
+    "Plot!379s6za": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/hsi/vis/temp.data",
+          "enabled": true,
+          "color": "#4e98e2",
+          "id": "269fdf0b-7144-4120-96ab-2a1081c1c160",
+          "label": "VIS Temp"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/hsi/nir/temp.data",
+          "enabled": true,
+          "color": "#f5774d",
+          "id": "71ce4f2c-d84e-411f-9f03-5e1b063c434b",
+          "label": "NIR Temp"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/hsi/nir/exposure_time_actual.data",
+          "enabled": false,
+          "color": "#f7df71",
+          "id": "c496da34-ea13-44b8-bb35-4d3086f9a949",
+          "label": "NIR Exposure Time"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/hsi/vis/exposure_time_actual.data",
+          "enabled": false,
+          "color": "#5cd6a9",
+          "id": "dc8ff9ed-6a4b-461e-908b-1bfa78a16009",
+          "label": "VIS Exposure Time"
+        }
+      ],
+      "foxglovePanelTitle": "Camera Temperatures",
+      "timeWindowMode": "fixed"
+    },
+    "Image!3kz6nas": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 60,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {
+        "imageTopic": "/hsi/vis/preview",
+        "flipVertical": true,
+        "colorMode": "gradient",
+        "maxValue": 1024,
+        "flipHorizontal": true
+      }
+    },
+    "Image!2j6r6uk": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 60,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {
+        "imageTopic": "/hsi/nir/preview",
+        "flipVertical": false,
+        "maxValue": 1024,
+        "flipHorizontal": false
+      }
+    },
+    "CallService!b2wh5o": {
+      "requestPayload": "{\n  \"mode\": \"bin_max\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "bin_max",
+      "serviceName": "/hsi/set_preview_type",
+      "buttonColor": "#9e9ea0"
+    },
+    "CallService!arakxp": {
+      "requestPayload": "{\n  \"mode\": \"rgb\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "rgb",
+      "serviceName": "/hsi/set_preview_type",
+      "buttonColor": "#7ec450"
+    },
+    "CallService!2rjcrak": {
+      "requestPayload": "{\n  \"mode\": \"bin_average\"\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "foxglovePanelTitle": "white_reference",
+      "editingMode": false,
+      "buttonText": "bin_avg",
+      "serviceName": "/hsi/set_preview_type",
+      "buttonColor": "#65646a"
+    },
+    "Publish!1wndglq": {
+      "topicName": "/mission_state",
+      "datatype": "std_msgs/String",
+      "value": "{\n  \"data\": \"shutdown\"\n}",
+      "advancedView": false,
+      "buttonText": "Shutdown"
+    },
+    "RawMessages!8nngdr": {
+      "defaultExpanded": false,
+      "topicPath": "/hsi/vis/exposure_time_actual"
+    },
+    "Publish!9ixnoz": {
+      "topicName": "/hsi/vis/exposure_time_setpoint",
+      "datatype": "std_msgs/Float32",
+      "value": "{\n  \"data\": 10\n}"
+    },
+    "RawMessages!1jphs8a": {
+      "defaultExpanded": false,
+      "topicPath": "/hsi/nir/exposure_time_actual"
+    },
+    "Publish!epnv84": {
+      "topicName": "/hsi/nir/exposure_time_setpoint",
+      "datatype": "std_msgs/Float32",
+      "value": "{\"data\": 10}"
+    },
+    "Image!2nbexum": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 60,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {
+        "imageTopic": "/sensors/stereo/preview/stereo",
+        "colorMode": "gradient",
+        "colorMap": "rainbow",
+        "maxValue": 255,
+        "minValue": 0,
+        "flipVertical": false
+      }
+    },
+    "map!309cngv": {
+      "customTileUrl": "",
+      "disabledTopics": [],
+      "followTopic": "",
+      "followFrame": "",
+      "layer": "satellite",
+      "topicColors": {},
+      "zoomLevel": 2,
+      "maxNativeZoom": 18,
+      "topicConfig": {},
+      "layers": []
+    },
+    "Image!2wq5h4n": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 60,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {
+        "imageTopic": "/sensors/stereo/preview/left",
+        "flipVertical": false
+      }
+    },
+    "Image!48chc42": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 60,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {
+        "imageTopic": "/sensors/stereo/preview/right",
+        "flipVertical": false
+      }
+    },
+    "Plot!38eawbk": {
+      "xAxisVal": "index",
+      "xAxisLabel": "Wavelength [nm]",
+      "yAxisLabel": "Radiance",
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/sensors/spectrometer.data[:]",
+          "enabled": true,
+          "color": "#4e98e2",
+          "id": "c98e4b30-d780-435a-809e-86e3ada16bb4"
+        }
+      ],
+      "maxYValue": 50000
+    },
+    "Tab!hyper_custom": {
+      "activeTabIdx": 0,
+      "tabs": [
+        {
+          "title": "Overview",
+          "layout": "Tab!hyper_custom_inner"
+        },
+        {
+          "title": "HSI Images",
+          "layout": {
+            "first": {
+              "first": {
+                "first": {
+                  "first": "CallService!4d701jv",
+                  "second": "CallService!25ida8f",
+                  "direction": "column",
+                  "splitPercentage": 52.887290486372166
+                },
+                "second": {
+                  "first": {
+                    "first": "CallService!2wxnnk5",
+                    "second": "CallService!da6y26",
+                    "direction": "column"
+                  },
+                  "second": {
+                    "first": "CallService!31iyrpg",
+                    "second": {
+                      "first": {
+                        "first": "CallService!1ogpr57",
+                        "second": "CallService!kweg00",
+                        "direction": "column",
+                        "splitPercentage": 2
+                      },
+                      "second": "CallService!4bbjpq2",
+                      "direction": "column",
+                      "splitPercentage": 34.9981387623938
+                    },
+                    "direction": "column",
+                    "splitPercentage": 26.279174101138935
+                  },
+                  "direction": "column",
+                  "splitPercentage": 32.606112797617456
+                },
+                "direction": "column",
+                "splitPercentage": 25.905456310876744
+              },
+              "second": {
+                "first": {
+                  "first": {
+                    "first": "RawMessages!311156j",
+                    "second": "Plot!379s6za",
+                    "direction": "row",
+                    "splitPercentage": 20.2683615819209
+                  },
+                  "second": {
+                    "first": "Image!3kz6nas",
+                    "second": "Image!2j6r6uk",
+                    "direction": "row"
+                  },
+                  "direction": "column",
+                  "splitPercentage": 33.04127532953582
+                },
+                "second": {
+                  "first": "CallService!b2wh5o",
+                  "second": {
+                    "first": "CallService!arakxp",
+                    "second": "CallService!2rjcrak",
+                    "direction": "row"
+                  },
+                  "direction": "row",
+                  "splitPercentage": 34.14312671568307
+                },
+                "direction": "column",
+                "splitPercentage": 87.02183517633571
+              },
+              "direction": "row",
+              "splitPercentage": 7.871779060481384
+            },
+            "second": {
+              "first": "Publish!1wndglq",
+              "second": {
+                "first": "RawMessages!8nngdr",
+                "second": {
+                  "first": "Publish!9ixnoz",
+                  "second": {
+                    "first": "RawMessages!1jphs8a",
+                    "second": "Publish!epnv84",
+                    "direction": "row"
+                  },
+                  "direction": "row",
+                  "splitPercentage": 34.916387959866235
+                },
+                "direction": "row",
+                "splitPercentage": 19.16701341869269
+              },
+              "direction": "row",
+              "splitPercentage": 10.902049610248204
+            },
+            "direction": "column",
+            "splitPercentage": 81.29808791041366
+          }
+        },
+        {
+          "title": "Other Sensors",
+          "layout": {
+            "first": {
+              "first": "Image!2nbexum",
+              "second": {
+                "first": "map!309cngv",
+                "second": "Plot!38eawbk",
+                "direction": "row"
+              },
+              "direction": "row",
+              "splitPercentage": 44.61955258130061
+            },
+            "second": {
+              "direction": "row",
+              "first": "Image!2wq5h4n",
+              "second": "Image!48chc42",
+              "splitPercentage": 44.49015901256533
+            },
+            "direction": "column"
+          }
+        }
+      ]
+    }
+  },
+  "globalVariables": {
+    "globalVariable": 27
+  },
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": "Tab!hyper_custom",
+  "drawerConfig": {
+    "tracks": []
+  }
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>hsi_system_controller</name>
+  <version>0.0.1</version>
+  <description>System-level controller nodes for HSI platform.</description>
+  <maintainer email="a.roberts18@newcastle.ac.uk">Andrew Roberts</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>ros2bag</exec_depend>
+  <exec_depend>hsi_camera_driver_cpp</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

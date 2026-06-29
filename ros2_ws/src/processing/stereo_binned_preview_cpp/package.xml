@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>stereo_binned_preview_cpp</name>
+  <version>0.1.0</version>
+  <description>Stereo rectification, disparity, and binned previews from raw left/right images.</description>
+  <maintainer email="andymrobertsuk@gmail.com">hyper</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>ament_index_cpp</depend>
+  <depend>rclcpp</depend>
+  <exec_depend>stereo_camera</exec_depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>opencv</depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

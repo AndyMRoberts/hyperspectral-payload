@@ -1,0 +1,197 @@
+{
+  "configById": {
+    "Image!2nbexum": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 60,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {
+        "imageTopic": "/sensors/stereo/preview/stereo",
+        "colorMode": "gradient",
+        "colorMap": "rainbow",
+        "maxValue": 255,
+        "minValue": 0,
+        "flipVertical": false
+      }
+    },
+    "map!309cngv": {
+      "customTileUrl": "",
+      "disabledTopics": [],
+      "followTopic": "",
+      "followFrame": "",
+      "layer": "satellite",
+      "topicColors": {},
+      "zoomLevel": 2,
+      "maxNativeZoom": 18,
+      "topicConfig": {},
+      "layers": []
+    },
+    "Image!2wq5h4n": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 60,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {
+        "imageTopic": "/sensors/stereo/preview/left",
+        "flipVertical": false
+      }
+    },
+    "Image!48chc42": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 60,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {
+        "imageTopic": "/sensors/stereo/preview/right",
+        "flipVertical": false
+      }
+    },
+    "Plot!38eawbk": {
+      "xAxisVal": "index",
+      "xAxisLabel": "Wavelength [nm]",
+      "yAxisLabel": "Radiance",
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/sensors/spectrometer.data[:]",
+          "enabled": true,
+          "color": "#4e98e2",
+          "id": "c98e4b30-d780-435a-809e-86e3ada16bb4"
+        }
+      ],
+      "maxYValue": 50000
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": {
+      "first": "Image!2nbexum",
+      "second": {
+        "first": "map!309cngv",
+        "second": "Plot!38eawbk",
+        "direction": "row"
+      },
+      "direction": "row",
+      "splitPercentage": 44.61955258130061
+    },
+    "second": {
+      "direction": "row",
+      "first": "Image!2wq5h4n",
+      "second": "Image!48chc42",
+      "splitPercentage": 44.49015901256533
+    },
+    "direction": "column"
+  }
+}

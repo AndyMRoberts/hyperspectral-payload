@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>system_profiler</name>
+  <version>0.0.1</version>
+  <description>For monitoring on board power and memory usage</description>
+  <maintainer email="a.roberts18@newcastle.ac.uk">Andrew Roberts</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
