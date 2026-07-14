@@ -41,8 +41,8 @@ This repo is a working progress for the open source hyperspectral payload projec
 
 ### Dependencies
 - IMEC API (provided with Ximea XiSpec camera purchase)
-- ROS2 Humble distro 
-- Developed on Jetson Orin Nano running Jetpack 6.2.1
+- ROS2 Humble distro (https://docs.ros.org/en/humble/index.html)
+- Tested on Jetson Orin Nano running Jetpack 6.2.1
 
 
 ### Setup
@@ -85,7 +85,9 @@ The visible image is in the left panel with nir in the right. The camera sensor 
 - shutdown - triggers a graceful shutdown of the system. 
 
 
+### Post Processing 
 
+Once a run has been completed the raw hyperpectral images can be radiometrically processed and the rosbag unpacked using post_run_data_processing.ipynb.
 
 # Other
 
