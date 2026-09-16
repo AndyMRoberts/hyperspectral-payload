@@ -8,10 +8,13 @@
 ```
 hyperspectral-payload/
 ├── 3D_models/              CAD models (STL) for the payload enclosure and sensor mounts.
+├── calibration_files/      Used by some of the test code in private_repo, not necessary for running but there as an example of the folder structure created during a run. 
 ├── figures/                Documentation images, including the system overview photo.
 ├── foxglove/               Foxglove Studio layout configs and generator for live ROS visualization.
+├── private_repo/           Git submodule for development code
 ├── processing/             Offline Jupyter notebooks for post-run HSI data analysis.
 └── ros2_ws/                Main ROS 2 workspace — onboard drivers, processing, and launch files.
+    └── scripts/            Currently scripts for downloading and configuring extra ros2 nodes.
     └── src/
         ├── bringup/        Top-level launch files that start cameras, previews, and related nodes.
         │   └── hsi_bringup/
@@ -19,11 +22,13 @@ hyperspectral-payload/
         │   └── hsi_python_utils/
         ├── controller/     System-level controller nodes for coordinating the platform.
         │   └── hsi_system_controller/
+        ├── custom_msgs/    Custom ros2 messages e.g. hyperspectral data cube
         ├── monitoring/     Onboard power and memory usage monitoring.
         │   └── system_profiler/
         ├── processing/     Real-time image processing pipelines.
         │   ├── hsi_binned_preview_cpp/     Downsampled max/avg/colour previews for HSI streams.
-        │   ├── radiometric_processing/       Online and offline radiometric processing of raw cubes.
+        │   ├── radiometric_processing/       IN DEVELOPMENT: online fast radiometric processing in python
+        │   ├── radiometric_processing_cpp/   IN DEVELOPMENT: online fast radiometric processing in cpp
         │   └── stereo_binned_preview_cpp/    Stereo rectification, disparity, and binned previews.
         └── sensors/        Hardware drivers for all payload sensors.
             ├── gps_monitor_cpp/              DFRobot USB GPS receiver — publishes NavSatFix.
@@ -62,6 +67,33 @@ source install/setup.sh
 1. SSH to the Jetson and from \ros2_ws launch system with full system launch command, this will also launch the foxglove bridge to allow communication with foxglove UI over the network.
 
 'ros2 launch hsi_bringup full_system.launch.py run_name:=default_run_name acquisition_rate_hz:=20.0 throttled_rate_hz:=20.0'
+
+### General Overview
+- Use a launch file to launch the desired nodes with the desired settings
+- Via the Foxglove interface you can view the output data and send conrol messages to the system, such as for recording reference images, initiating timelapses, stopping, and shutting down. 
+- Reference images are collected first using the foxglove interface. 
+- Once ready a timelapse can be started, this records the hyperspectral images using the imec_api, and all other sensor data via a rosbag of the relevant topics.
+- Once done, stop the recording via the foxglove interface stop button(rosbag will be corrupt if not shutdown properly), then shutdown the ros system.
+- Safely shutdown the jetson using 'sudo shutdown now'  
+
+### Configurations
+- Rosbag recording topics: in order to reduce memory usage the rosbag topic list can be shortened via the exclusion list in camera_commands_controller.py.
+- Nodes: nodes can be excluded from launch if not required via the hsi_bringup full_system.launch.py file.
+- 
+
+
+### Example Launch Commands
+```
+# Run full system with legacy stereo (not issac argus node), with only left camera recording, no live radiometric processing, hsi cameras acquiring at 20hz, rosbag saving at 20Hz:
+ros2 launch hsi_bringup full_system.launch.py run_name:=run_name_here acquisition_rate_hz:=20.0 throttled_rate_hz:=20.0 use_legacy_stereo:=True single_stereo_mode:=True enable_online_radiometric_proc:=False
+
+# Same as above but with under development isaac argus node running for the stereo recording and processing:
+ros2 launch hsi_bringup full_system.launch.py run_name:=test acquisition_rate_hz:=20.0 throttled_rate_hz:=20.0 enable_online_radiometric_proc:=False
+
+# For runnign stereo cameras only:
+ros2 launch hsi_bringup stereo_only.launch.py run_name:=stereo_rate_testing use_legacy_stereo:=True single_stereo_mode:=True
+
+```
 
 ### Data Collection Procedure
 
