@@ -11,7 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'hsi_python_utils'],
     zip_safe=True,
     maintainer='hyper',
     maintainer_email='andymrobertsuk@gmail.com',

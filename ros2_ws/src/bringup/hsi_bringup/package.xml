@@ -13,6 +13,8 @@
   <exec_depend>hsi_python_utils</exec_depend>
   <exec_depend>hsi_camera_driver_cpp</exec_depend>
   <exec_depend>hsi_binned_preview_cpp</exec_depend>
+  <exec_depend>radiometric_processing</exec_depend>
+  <exec_depend>radiometric_processing_cpp</exec_depend>
   <exec_depend>stereo_camera</exec_depend>
   <exec_depend>stereo_binned_preview_cpp</exec_depend>
   <exec_depend>hsi_system_controller</exec_depend>

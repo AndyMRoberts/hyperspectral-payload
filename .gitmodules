@@ -1,0 +1,6 @@
+[submodule "ros2_ws/src/sensors/gps/gps_monitor_cpp/include/USB_GPS_EN"]
+	path = ros2_ws/src/sensors/gps/gps_monitor_cpp/include/USB_GPS_EN
+	url = https://github.com/DFRobotdl/USB_GPS_EN.git
+[submodule "private_repo"]
+	path = private_repo
+	url = git@github.com:AndyMRoberts/hyperspectral-payload-private.git

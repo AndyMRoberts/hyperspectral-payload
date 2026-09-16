@@ -12,7 +12,9 @@ def generate_launch_description():
             parameters=[{
                 "publish_rate_hz": 10.0,
                 "bin_size": 4,
+                "target_preview_width": 160,
                 "bin_mode": "average",
+                "single_mode": False,
                 "camera_width": 1280,
                 "camera_height": 720,
                 "left_topic": "/sensors/stereo/left",

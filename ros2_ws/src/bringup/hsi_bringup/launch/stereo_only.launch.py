@@ -27,6 +27,10 @@ _FOXGLOVE_SERVICE_WHITELIST = "['/hsi/set_preview_type', '/hsi/camera_commands']
 def _launch_setup(context, *args, **kwargs):
     run_name_suffix = LaunchConfiguration("run_name").perform(context)
     run_name_path = create_run_name_path(run_name_suffix)
+    single_stereo_mode = LaunchConfiguration("single_stereo_mode").perform(context).lower() in (
+        "true",
+        "1",
+    )
 
     foxglove_launch = IncludeLaunchDescription(
         FrontendLaunchDescriptionSource(
@@ -106,8 +110,10 @@ def _launch_setup(context, *args, **kwargs):
     )
 
     stereo_size = {
-        "camera_width": 1280,
-        "camera_height": 720,
+        "camera_width": 1920,
+        "camera_height": 1080,
+        # "camera_width": 3280,
+        # "camera_height": 2464,
     }
 
     stereo_camera = Node(
@@ -116,15 +122,19 @@ def _launch_setup(context, *args, **kwargs):
         name="stereo_camera",
         output="screen",
         parameters=[{
-            "rate_hz": 20.0,
+            "acquisition_rate_hz": 20.0,
+            "throttled_rate_hz": 1.0,
+            "single_mode": single_stereo_mode,
             **stereo_size,
         }],
     )
 
     stereo_preview_params = {
         "publish_rate_hz": 10.0,
-        "bin_size": 4,
+        "bin_size": 4,  # used only if target_preview_width <= 0
+        "target_preview_width": 160,  # auto bin so 640x480 and 1920x1080 previews match size
         "bin_mode": "average",
+        "single_mode": single_stereo_mode,
         "num_disparities": 16*10,      # must be divisible by 16
         "sad_window_size": 11,      # must be odd
         "left_topic": "/sensors/stereo/left",
@@ -171,18 +181,21 @@ def _launch_setup(context, *args, **kwargs):
         output="screen",
     )
 
-    return [
+    actions = [
         foxglove_launch,
         # vis_camera,
         # nir_camera,
         # binned_preview_vis,
         # binned_preview_nir,
-        stereo_camera,
         stereo_binned_preview,
         # commands_controller,
         # system_profiler,
         # gps,
     ]
+    # Default: Isaac Argus (Docker) publishes /sensors/stereo/{left,right}.
+    if LaunchConfiguration("use_legacy_stereo").perform(context).lower() in ("true", "1"):
+        actions.append(stereo_camera)
+    return actions
 
 
 def generate_launch_description():
@@ -194,10 +207,27 @@ def generate_launch_description():
             "/mnt/data/timelapses/YYYYMMDD_HHMMSS_<run_name> and passes it to all nodes."
         ),
     )
+    single_stereo_mode_arg = DeclareLaunchArgument(
+        "single_stereo_mode",
+        default_value="false",
+        description=(
+            "If true, open only the left stereo camera (higher rate when depth is not required)."
+        ),
+    )
+    use_legacy_stereo_arg = DeclareLaunchArgument(
+        "use_legacy_stereo",
+        default_value="false",
+        description=(
+            "If true, launch OpenCV stereo_camera on the host. If false (default), "
+            "expect Isaac Argus in Docker to publish /sensors/stereo/{left,right}."
+        ),
+    )
 
     return LaunchDescription(
         [
             run_name_arg,
+            single_stereo_mode_arg,
+            use_legacy_stereo_arg,
             OpaqueFunction(function=_launch_setup),
         ]
     )

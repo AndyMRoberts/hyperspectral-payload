@@ -185,6 +185,9 @@ public:
     declare_parameter<std::string>("topic_prefix", "/sensors/stereo");
     declare_parameter<double>("publish_rate_hz", 10.0);
     declare_parameter<int>("bin_size", 4);
+    // When > 0, bin_size is derived from each frame so preview width ~= this value
+    // (e.g. 160 keeps 640x480 and 1920x1080 previews similarly sized).
+    declare_parameter<int>("target_preview_width", 160);
     declare_parameter<std::string>("bin_mode", "average");
     declare_parameter<int>("camera_width", 1280);
     declare_parameter<int>("camera_height", 720);
@@ -193,6 +196,7 @@ public:
     declare_parameter<int>("sad_window_size", 21);
     declare_parameter<std::string>("mission_state_topic", "/mission_state");
     declare_parameter<double>("max_input_idle_s", 0.5);
+    declare_parameter<bool>("single_mode", false);
 
     const std::string default_cal_dir = get_default_calibration_dir();
     declare_parameter<std::string>(
@@ -210,6 +214,7 @@ public:
     }
     publish_rate_hz_ = get_parameter("publish_rate_hz").as_double();
     bin_size_ = get_parameter("bin_size").as_int();
+    target_preview_width_ = get_parameter("target_preview_width").as_int();
     bin_mode_ = parse_bin_mode(get_parameter("bin_mode").as_string());
     camera_width_ = get_parameter("camera_width").as_int();
     camera_height_ = get_parameter("camera_height").as_int();
@@ -218,6 +223,7 @@ public:
     sad_window_size_ = get_parameter("sad_window_size").as_int();
     mission_state_topic_ = get_parameter("mission_state_topic").as_string();
     max_input_idle_s_ = get_parameter("max_input_idle_s").as_double();
+    single_mode_ = get_parameter("single_mode").as_bool();
     intrinsics_file_ = get_parameter("intrinsics_file").as_string();
     extrinsics_file_ = get_parameter("extrinsics_file").as_string();
 
@@ -227,16 +233,20 @@ public:
     if (calibration_scale_ <= 0.0) {
       throw std::runtime_error("calibration_scale must be > 0");
     }
-    if (num_disparities_ < 16 || num_disparities_ % 16 != 0) {
-      throw std::runtime_error("num_disparities must be a positive integer divisible by 16");
-    }
-    if (sad_window_size_ < 1 || sad_window_size_ % 2 != 1) {
-      throw std::runtime_error("sad_window_size must be a positive odd number");
+    if (!single_mode_) {
+      if (num_disparities_ < 16 || num_disparities_ % 16 != 0) {
+        throw std::runtime_error("num_disparities must be a positive integer divisible by 16");
+      }
+      if (sad_window_size_ < 1 || sad_window_size_ % 2 != 1) {
+        throw std::runtime_error("sad_window_size must be a positive odd number");
+      }
     }
     clamp_bin_size();
 
-    load_calibration();
-    init_stereo_matcher();
+    if (!single_mode_) {
+      load_calibration();
+      init_stereo_matcher();
+    }
 
     rclcpp::QoS qos_sub(rclcpp::KeepLast(1));
     qos_sub.best_effort();
@@ -250,13 +260,15 @@ public:
         last_left_ = std::move(msg);
         last_left_rx_ = std::chrono::steady_clock::now();
       });
-    right_sub_ = create_subscription<sensor_msgs::msg::Image>(
-      right_topic_, qos_sub,
-      [this](sensor_msgs::msg::Image::ConstSharedPtr msg) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        last_right_ = std::move(msg);
-        last_right_rx_ = std::chrono::steady_clock::now();
-      });
+    if (!single_mode_) {
+      right_sub_ = create_subscription<sensor_msgs::msg::Image>(
+        right_topic_, qos_sub,
+        [this](sensor_msgs::msg::Image::ConstSharedPtr msg) {
+          std::lock_guard<std::mutex> lock(mutex_);
+          last_right_ = std::move(msg);
+          last_right_rx_ = std::chrono::steady_clock::now();
+        });
+    }
 
     mission_sub_ = create_subscription<std_msgs::msg::String>(
       mission_state_topic_, rclcpp::QoS(10),
@@ -268,29 +280,44 @@ public:
       });
 
     left_pub_ = create_publisher<sensor_msgs::msg::Image>(topic_prefix_ + "/preview/left", qos_pub);
-    right_pub_ = create_publisher<sensor_msgs::msg::Image>(topic_prefix_ + "/preview/right", qos_pub);
-    stereo_pub_ = create_publisher<sensor_msgs::msg::Image>(topic_prefix_ + "/preview/stereo", qos_pub);
+    if (!single_mode_) {
+      right_pub_ = create_publisher<sensor_msgs::msg::Image>(
+        topic_prefix_ + "/preview/right", qos_pub);
+      stereo_pub_ = create_publisher<sensor_msgs::msg::Image>(
+        topic_prefix_ + "/preview/stereo", qos_pub);
+    }
 
     const double period = publish_rate_hz_ > 0.0 ? (1.0 / publish_rate_hz_) : 0.1;
     timer_ = create_wall_timer(
       std::chrono::duration<double>(period),
       std::bind(&StereoBinnedPreviewNode::on_timer, this));
 
-    RCLCPP_INFO(
-      get_logger(),
-      "Stereo binned preview: raw left=%s right=%s -> %s/preview/{left,right,stereo}, "
-      "bin_size=%d, bin_mode=%s, rate=%.3f Hz, size=%dx%d, "
-      "num_disparities=%d, sad_window_size=%d",
-      left_topic_.c_str(), right_topic_.c_str(), topic_prefix_.c_str(),
-      bin_size_, bin_mode_to_string(bin_mode_).c_str(), publish_rate_hz_,
-      camera_width_, camera_height_, num_disparities_, sad_window_size_);
-    if (use_calibration_) {
+    if (single_mode_) {
       RCLCPP_INFO(
         get_logger(),
-        "Rectification enabled: intrinsics='%s' extrinsics='%s' scale=%.3f",
-        intrinsics_file_.c_str(), extrinsics_file_.c_str(), calibration_scale_);
+        "Stereo binned preview (single_mode): raw left=%s -> %s/preview/left, "
+        "target_preview_width=%d (fallback bin_size=%d), bin_mode=%s, rate=%.3f Hz",
+        left_topic_.c_str(), topic_prefix_.c_str(),
+        target_preview_width_, bin_size_, bin_mode_to_string(bin_mode_).c_str(),
+        publish_rate_hz_);
     } else {
-      RCLCPP_WARN(get_logger(), "Rectification disabled (no calibration files loaded)");
+      RCLCPP_INFO(
+        get_logger(),
+        "Stereo binned preview: raw left=%s right=%s -> %s/preview/{left,right,stereo}, "
+        "target_preview_width=%d (fallback bin_size=%d), bin_mode=%s, rate=%.3f Hz, "
+        "cal_size=%dx%d, num_disparities=%d, sad_window_size=%d",
+        left_topic_.c_str(), right_topic_.c_str(), topic_prefix_.c_str(),
+        target_preview_width_, bin_size_, bin_mode_to_string(bin_mode_).c_str(),
+        publish_rate_hz_, camera_width_, camera_height_,
+        num_disparities_, sad_window_size_);
+      if (use_calibration_) {
+        RCLCPP_INFO(
+          get_logger(),
+          "Rectification enabled: intrinsics='%s' extrinsics='%s' scale=%.3f",
+          intrinsics_file_.c_str(), extrinsics_file_.c_str(), calibration_scale_);
+      } else {
+        RCLCPP_WARN(get_logger(), "Rectification disabled (no calibration files loaded)");
+      }
     }
   }
 
@@ -329,6 +356,14 @@ private:
     if (bin_size_ < 1) {
       bin_size_ = 1;
     }
+  }
+
+  int effective_bin_size(int src_width) const
+  {
+    if (target_preview_width_ > 0 && src_width > 0) {
+      return std::max(1, src_width / target_preview_width_);
+    }
+    return std::max(1, bin_size_);
   }
 
   void load_calibration()
@@ -465,34 +500,33 @@ private:
     return disparity_8u;
   }
 
-  cv::Mat bin_mat(const cv::Mat & src, BinMode mode)
+  cv::Mat bin_mat(const cv::Mat & src, BinMode mode, int bin_size)
   {
     if (src.empty()) {
       return {};
     }
-    return (mode == BinMode::kMax) ? bin_max(src, bin_size_) : bin_average(src, bin_size_);
+    return (mode == BinMode::kMax) ? bin_max(src, bin_size) : bin_average(src, bin_size);
   }
 
   void publish_stale_mono(
     const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr & pub, int w, int h)
   {
-    if (w <= 0 || h <= 0) {
+    if (!pub || w <= 0 || h <= 0) {
       return;
     }
-    const int preview_w = std::max(1, w / bin_size_);
-    const int preview_h = std::max(1, h / bin_size_);
     std_msgs::msg::Header hdr;
     hdr.stamp = now();
     hdr.frame_id = "stale_input";
     sensor_msgs::msg::Image out;
     out.header = hdr;
-    draw_stale_signal_mono8(out, preview_w, preview_h);
+    draw_stale_signal_mono8(out, w, h);
     pub->publish(out);
   }
 
   void on_timer()
   {
     bin_size_ = get_parameter("bin_size").as_int();
+    target_preview_width_ = get_parameter("target_preview_width").as_int();
     max_input_idle_s_ = get_parameter("max_input_idle_s").as_double();
     clamp_bin_size();
 
@@ -525,32 +559,60 @@ private:
     const auto steady_now = std::chrono::steady_clock::now();
     const double left_idle_s = std::chrono::duration<double>(steady_now - left_rx).count();
     const double right_idle_s = std::chrono::duration<double>(steady_now - right_rx).count();
-    const bool input_stale =
-      max_input_idle_s_ > 0.0 &&
-      (left_idle_s > max_input_idle_s_ || right_idle_s > max_input_idle_s_);
+    const bool input_stale = max_input_idle_s_ > 0.0 && (
+      left_idle_s > max_input_idle_s_ ||
+      (!single_mode_ && right_idle_s > max_input_idle_s_));
 
     if (input_stale) {
       publish_stale_mono(left_pub_, last_preview_w_, last_preview_h_);
-      publish_stale_mono(right_pub_, last_preview_w_, last_preview_h_);
-      publish_stale_mono(stereo_pub_, last_preview_w_, last_preview_h_);
+      if (!single_mode_) {
+        publish_stale_mono(right_pub_, last_preview_w_, last_preview_h_);
+        publish_stale_mono(stereo_pub_, last_preview_w_, last_preview_h_);
+      }
       return;
     }
 
-    if (!validate_raw_image(left_raw, "left") || !validate_raw_image(right_raw, "right")) {
+    if (!validate_raw_image(left_raw, "left")) {
+      return;
+    }
+    if (!single_mode_ && !validate_raw_image(right_raw, "right")) {
       return;
     }
 
     try {
+      if (single_mode_) {
+        cv::Mat img_left = to_gray_and_scale(*left_raw);
+        if (img_left.empty()) {
+          return;
+        }
+        const int bin = effective_bin_size(img_left.cols);
+        const cv::Mat preview_left = bin_mat(img_left, mode, bin);
+        if (preview_left.empty()) {
+          return;
+        }
+
+        last_preview_w_ = preview_left.cols;
+        last_preview_h_ = preview_left.rows;
+
+        std_msgs::msg::Header header = left_raw->header;
+        header.stamp = now();
+        sensor_msgs::msg::Image left_msg;
+        mat_to_image_msg(preview_left, "mono8", header, left_msg);
+        left_pub_->publish(left_msg);
+        return;
+      }
+
       cv::Mat img_left = rectify_left(to_gray_and_scale(*left_raw));
       cv::Mat img_right = rectify_right(to_gray_and_scale(*right_raw));
       if (img_left.empty() || img_right.empty()) {
         return;
       }
 
+      const int bin = effective_bin_size(img_left.cols);
       const cv::Mat disparity_8u = compute_disparity_8u(img_left, img_right);
-      const cv::Mat preview_left = bin_mat(img_left, mode);
-      const cv::Mat preview_right = bin_mat(img_right, mode);
-      const cv::Mat preview_stereo = bin_mat(disparity_8u, mode);
+      const cv::Mat preview_left = bin_mat(img_left, mode, bin);
+      const cv::Mat preview_right = bin_mat(img_right, mode, bin);
+      const cv::Mat preview_stereo = bin_mat(disparity_8u, mode, bin);
       if (preview_left.empty() || preview_right.empty() || preview_stereo.empty()) {
         return;
       }
@@ -578,6 +640,7 @@ private:
 
   double publish_rate_hz_{10.0};
   int bin_size_{4};
+  int target_preview_width_{160};
   int camera_width_{1280};
   int camera_height_{720};
   double calibration_scale_{1.0};
@@ -586,6 +649,7 @@ private:
   BinMode bin_mode_{BinMode::kAverage};
   double max_input_idle_s_{0.5};
   bool use_calibration_{false};
+  bool single_mode_{false};
   std::string mission_state_topic_;
   std::string left_topic_;
   std::string right_topic_;

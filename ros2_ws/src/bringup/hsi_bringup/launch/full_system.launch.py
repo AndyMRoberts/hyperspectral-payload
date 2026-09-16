@@ -10,6 +10,8 @@ from hsi_python_utils import create_run_name_path
 _FOXGLOVE_TOPIC_WHITELIST = (
     "['/hsi/vis/preview', "
     "'/hsi/nir/preview', "
+    "'/hsi/vis/reflectance/rgb', "
+    "'/hsi/nir/reflectance/rgb', "
     "'/sensors/stereo/preview/left', "
     "'/sensors/stereo/preview/right', "
     "'/sensors/stereo/preview/stereo', "
@@ -30,6 +32,10 @@ def _launch_setup(context, *args, **kwargs):
     run_name_path = create_run_name_path(run_name_suffix)
     acquisition_rate_hz = float(LaunchConfiguration("acquisition_rate_hz").perform(context))
     throttled_rate_hz = float(LaunchConfiguration("throttled_rate_hz").perform(context))
+    single_stereo_mode = LaunchConfiguration("single_stereo_mode").perform(context).lower() in (
+        "true",
+        "1",
+    )
 
     foxglove_launch = IncludeLaunchDescription(
         FrontendLaunchDescriptionSource(
@@ -90,7 +96,6 @@ def _launch_setup(context, *args, **kwargs):
         "publish_rate_hz": 10.0,
         "extra_bin": 2,  # increase to compress image stream
         "preview_type": "rgb",  # one of: "bin_max", "bin_average", "rgb"
-        "raw_image_topic": "/hsi/vis/raw",
     }
 
     binned_preview_vis = Node(
@@ -98,7 +103,7 @@ def _launch_setup(context, *args, **kwargs):
         executable="hsi_binned_preview_node",
         name="hsi_binned_preview_vis",
         output="screen",
-        parameters=[{**preview_params, "camera": "vis"}],
+        parameters=[{**preview_params, "camera": "vis", "raw_image_topic": "/hsi/vis/raw"}],
     )
 
     binned_preview_nir = Node(
@@ -109,9 +114,32 @@ def _launch_setup(context, *args, **kwargs):
         parameters=[{**preview_params, "camera": "nir", "raw_image_topic": "/hsi/nir/raw"}],
     )
 
+    radiometric_params = {
+        "run_name_path": run_name_path,
+        "throttled_rate_hz": throttled_rate_hz,
+        "publish_rgb": True,
+        "publish_cube": True,
+    }
+
+    radiometric_processing_vis = Node(
+        package="radiometric_processing_cpp", # or can use the python version if required
+        executable="radiometric_processing_node", # or can use the python version if required
+        name="radiometric_processing_vis",
+        output="screen",
+        parameters=[{**radiometric_params, "device_name": "vis"}],
+    )
+
+    radiometric_processing_nir = Node(
+        package="radiometric_processing_cpp", # or can use the python version if required
+        executable="radiometric_processing_node", # or can use the python version if required
+        name="radiometric_processing_nir",
+        output="screen",
+        parameters=[{**radiometric_params, "device_name": "nir"}],
+    )
+
     stereo_size = {
-        "camera_width": 640,
-        "camera_height": 480,
+        "camera_width": 1280,
+        "camera_height": 1080,
     }
 
     stereo_camera = Node(
@@ -122,14 +150,19 @@ def _launch_setup(context, *args, **kwargs):
         parameters=[{
             "acquisition_rate_hz": acquisition_rate_hz,
             "throttled_rate_hz": throttled_rate_hz,
+            "single_mode": single_stereo_mode,
             **stereo_size,
         }],
     )
 
     stereo_preview_params = {
         "publish_rate_hz": 10.0,
-        "bin_size": 4,
+        "bin_size": 4,  # used only if target_preview_width <= 0
+        "target_preview_width": 160,  # auto bin so preview size is stable across resolutions
         "bin_mode": "average",
+        "single_mode": single_stereo_mode,
+        "num_disparities": 16 * 10,  # must be divisible by 16
+        "sad_window_size": 11,  # must be odd
         "left_topic": "/sensors/stereo/left",
         "right_topic": "/sensors/stereo/right",
         "topic_prefix": "/sensors/stereo",
@@ -182,19 +215,25 @@ def _launch_setup(context, *args, **kwargs):
         parameters=[{"rate_hz": 1.0}],
     )
 
-    return [
+    actions = [
         foxglove_launch,
         vis_camera,
         nir_camera,
         binned_preview_vis,
         binned_preview_nir,
-        stereo_camera,
         stereo_binned_preview,
         commands_controller,
         system_profiler,
         gps,
         spectrometer,
     ]
+    # Default: Isaac Argus (Docker) publishes /sensors/stereo/{left,right}.
+    # Set use_legacy_stereo:=true to start the OpenCV stereo_camera node instead.
+    if LaunchConfiguration("use_legacy_stereo").perform(context).lower() in ("true", "1"):
+        actions.append(stereo_camera)
+    if LaunchConfiguration("enable_online_radiometric_proc").perform(context).lower() in ("true", "1"):
+        actions.extend([radiometric_processing_vis, radiometric_processing_nir])
+    return actions
 
 
 def generate_launch_description():
@@ -216,12 +255,37 @@ def generate_launch_description():
         default_value="1.0",
         description="Throttled publish/save rate in Hz for HSI timelapse and stereo throttled topics.",
     )
+    enable_online_radiometric_proc_arg = DeclareLaunchArgument(
+        "enable_online_radiometric_proc",
+        default_value="true",
+        description="enable or disable online radiometric processing",
+    )
+    use_legacy_stereo_arg = DeclareLaunchArgument(
+        "use_legacy_stereo",
+        default_value="false",
+        description=(
+            "If true, launch OpenCV stereo_camera on the host. If false (default), "
+            "expect Isaac Argus in Docker to publish /sensors/stereo/{left,right}."
+        ),
+    )
+    single_stereo_mode_arg = DeclareLaunchArgument(
+        "single_stereo_mode",
+        default_value="false",
+        description=(
+            "If true, open only the left stereo camera (higher rate when depth is not required). "
+            "Applies to legacy stereo_camera and stereo_binned_preview; for Argus use "
+            "argus_stereo.launch.py single_stereo_mode:=true."
+        ),
+    )
 
     return LaunchDescription(
         [
             run_name_arg,
             acquisition_rate_hz_arg,
             throttled_rate_hz_arg,
+            enable_online_radiometric_proc_arg,
+            use_legacy_stereo_arg,
+            single_stereo_mode_arg,
             OpaqueFunction(function=_launch_setup),
         ]
     )

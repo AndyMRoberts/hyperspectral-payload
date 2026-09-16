@@ -535,8 +535,7 @@ private:
       if (timelapse_tick_) {
         const std::string command_dir_str = raw_dir_.string();
         const std::string frame_name = "timelapse_" + std::to_string(saved_frame_count);
-        const HSI_RETURN tl_save_err =
-          commonSaveFrame(frame_, command_dir_str.c_str(), frame_name.c_str(), FF_RAW);
+        const HSI_RETURN tl_save_err = commonSaveFrame(frame_, command_dir_str.c_str(), frame_name.c_str(), FF_RAW);
         raw_throttled_publisher_->publish(build_image_msg());
         timelapse_tick_ = false;
         if (tl_save_err == HSI_OK) {
@@ -580,8 +579,11 @@ private:
           case CommandType::kDarkReference: {
             //record one of multiple dark references, including exp time
             const std::string command_dir_str = dark_dir_.string();
+            const std::string command_dir_str_2 = non_uniformity_dir_.string();
             const std::string frame_name = "dark_reference_" +  std::to_string(saved_frame_count) + "_" + std::to_string(std::round(exposure_time_ms_));
+            // save to dark references and to non_uniformity
             save_err = commonSaveFrame(frame_, command_dir_str.c_str(), frame_name.c_str(), FF_RAW);
+            save_err = commonSaveFrame(frame_, command_dir_str_2.c_str(), frame_name.c_str(), FF_RAW);
             command_success = (save_err == HSI_OK);
             command_success_message = ("saved frame " + frame_name + " for " + command_type_to_string(camera_command_request_copy));
             command_failed_message = ("commonSaveFrame failed with code " + std::to_string(save_err));

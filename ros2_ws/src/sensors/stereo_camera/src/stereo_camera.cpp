@@ -1,3 +1,4 @@
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -6,6 +7,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 
 #include <opencv2/opencv.hpp>
 
@@ -24,12 +26,8 @@ std::string make_gstreamer_pipeline(int sensor_id, int width, int height, int fp
     << ", height=" << height
     << ", format=(string)NV12, framerate=(fraction)" << fps << "/1"
     << " ! nvvidconv flip-method=2"
-    << " ! video/x-raw, width=" << width
-    << ", height=" << height
-    << ", format=(string)BGRx"
-    << " ! videoconvert"
-    << " ! video/x-raw, format=(string)BGR"
-    << " ! appsink";
+    << " ! video/x-raw, format=(string)I420"
+    << " ! appsink drop=true max-buffers=1";
   return pipeline.str();
 }
 
@@ -77,6 +75,7 @@ public:
     frame_id_ = declare_parameter<std::string>("frame_id", "stereo_camera");
     left_topic_ = declare_parameter<std::string>("left_topic", "/sensors/stereo/left");
     right_topic_ = declare_parameter<std::string>("right_topic", "/sensors/stereo/right");
+    single_mode_ = declare_parameter<bool>("single_mode", false);
 
     if (acquisition_rate_hz_ <= 0.0) {
       throw std::runtime_error("acquisition_rate_hz must be > 0");
@@ -94,14 +93,15 @@ public:
     rclcpp::QoS qos(rclcpp::KeepLast(1));
     qos.best_effort();
     left_pub_ = create_publisher<sensor_msgs::msg::Image>(left_topic_, qos);
-    right_pub_ = create_publisher<sensor_msgs::msg::Image>(right_topic_, qos);
     left_throttled_pub_ = create_publisher<sensor_msgs::msg::Image>(left_topic_ + "/throttled", qos);
-    right_throttled_pub_ = create_publisher<sensor_msgs::msg::Image>(right_topic_ + "/throttled", qos);
+    if (!single_mode_) {
+      right_pub_ = create_publisher<sensor_msgs::msg::Image>(right_topic_, qos);
+      right_throttled_pub_ = create_publisher<sensor_msgs::msg::Image>(
+        right_topic_ + "/throttled", qos);
+    }
 
-    const auto acquisition_period = std::chrono::duration<double>(1.0 / acquisition_rate_hz_);
-    acquisition_timer_ = create_wall_timer(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(acquisition_period),
-      std::bind(&StereoCameraNode::acquisition_callback, this));
+    running_ = true;
+    capture_thread_ = std::thread(&StereoCameraNode::capture_loop, this);
 
     const auto throttled_period = std::chrono::duration<double>(1.0 / throttled_rate_hz_);
     throttled_timer_ = create_wall_timer(
@@ -110,72 +110,116 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "Stereo camera node started: acquisition_rate_hz=%.3f throttled_rate_hz=%.3f size=%dx%d "
-      "(cam0=right, cam1=left)",
+      "Stereo camera node started: single_mode=%s acquisition_rate_hz=%.3f throttled_rate_hz=%.3f "
+      "size=%dx%d (cam0=right, cam1=left)",
+      single_mode_ ? "true" : "false",
       acquisition_rate_hz_, throttled_rate_hz_, camera_width_, camera_height_);
-    RCLCPP_INFO(
-      get_logger(),
-      "Publishing raw left='%s' right='%s' throttled left='%s/throttled' right='%s/throttled'",
-      left_topic_.c_str(), right_topic_.c_str(), left_topic_.c_str(), right_topic_.c_str());
+    if (single_mode_) {
+      RCLCPP_INFO(
+        get_logger(),
+        "Publishing raw left='%s' throttled left='%s/throttled' (right camera disabled)",
+        left_topic_.c_str(), left_topic_.c_str());
+    } else {
+      RCLCPP_INFO(
+        get_logger(),
+        "Publishing raw left='%s' right='%s' throttled left='%s/throttled' right='%s/throttled'",
+        left_topic_.c_str(), right_topic_.c_str(), left_topic_.c_str(), right_topic_.c_str());
+    }
+  }
+
+  ~StereoCameraNode()
+  {
+    running_ = false;
+    if (capture_thread_.joinable()) {
+      capture_thread_.join();
+    }
+    if (cam0_.isOpened()) {
+      cam0_.release();
+    }
+    if (cam1_.isOpened()) {
+      cam1_.release();
+    }
   }
 
 private:
   void open_cameras(int capture_fps)
   {
-    const std::string cam0_pipeline = make_gstreamer_pipeline(
-      0, camera_width_, camera_height_, capture_fps);
+    // Waveshare IMX219-83: sensor-id 0 = right, sensor-id 1 = left
+    if (!single_mode_) {
+      const std::string cam0_pipeline = make_gstreamer_pipeline(
+        0, camera_width_, camera_height_, capture_fps);
+      cam0_.open(cam0_pipeline, cv::CAP_GSTREAMER);
+      if (!cam0_.isOpened()) {
+        throw std::runtime_error("cam0 is not opened (sensor-id=0, right)");
+      }
+      RCLCPP_INFO(get_logger(), "Opened cam0 (right)");
+    }
+
     const std::string cam1_pipeline = make_gstreamer_pipeline(
       1, camera_width_, camera_height_, capture_fps);
-
-    cam0_.open(cam0_pipeline, cv::CAP_GSTREAMER);
-    if (!cam0_.isOpened()) {
-      throw std::runtime_error("cam0 is not opened (sensor-id=0)");
-    }
-
     cam1_.open(cam1_pipeline, cv::CAP_GSTREAMER);
     if (!cam1_.isOpened()) {
-      throw std::runtime_error("cam1 is not opened (sensor-id=1)");
+      throw std::runtime_error("cam1 is not opened (sensor-id=1, left)");
     }
-
-    RCLCPP_INFO(get_logger(), "Opened cam0 (right) and cam1 (left)");
+    RCLCPP_INFO(get_logger(), "Opened cam1 (left)");
   }
 
-  void acquisition_callback()
+  void capture_loop()
   {
-    cv::Mat frame_right;
-    cv::Mat frame_left;
-    // cam0_ >> frame_left;
-    // cam1_ >> frame_right;
-    cam0_.grab();
-    cam1_.grab();
-    // this allows better syncing by grabbing first, then decoding after
-    cam0_.retrieve(frame_left);
-    cam1_.retrieve(frame_right);
+    cv::Mat frame_right_i420, frame_left_i420;
+    cv::Mat frame_right_bgr, frame_left_bgr;
 
-    if (!frame_left.data || !frame_right.data) {
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 5000,
-        "Error reading images from cam0/cam1");
-      return;
-    }
+    while (running_ && rclcpp::ok()) {
+      // Blocks until hardware delivers a frame (no timer drift)
+      const bool grabbed_left = cam1_.grab();
+      const bool grabbed_right = single_mode_ ? true : cam0_.grab();
+      if (!grabbed_left || !grabbed_right) {
+        continue;
+      }
 
-    std_msgs::msg::Header header;
-    header.stamp = now();
-    header.frame_id = frame_id_;
+      if (!single_mode_) {
+        cam0_.retrieve(frame_right_i420);
+        if (frame_right_i420.empty()) {
+          RCLCPP_WARN_THROTTLE(
+            get_logger(), *get_clock(), 5000,
+            "Empty frame from cam0");
+          continue;
+        }
+      }
 
-    sensor_msgs::msg::Image left_msg;
-    sensor_msgs::msg::Image right_msg;
-    mat_to_image_msg(frame_left, "bgr8", header, left_msg);
-    mat_to_image_msg(frame_right, "bgr8", header, right_msg);
+      cam1_.retrieve(frame_left_i420);
+      if (frame_left_i420.empty()) {
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 5000,
+          "Empty frame from cam1");
+        continue;
+      }
 
-    left_pub_->publish(left_msg);
-    right_pub_->publish(right_msg);
+      cv::cvtColor(frame_left_i420, frame_left_bgr, cv::COLOR_YUV2BGR_I420);
 
-    {
-      std::lock_guard<std::mutex> lock(latest_frames_mutex_);
-      latest_left_msg_ = left_msg;
-      latest_right_msg_ = right_msg;
-      have_latest_frames_ = true;
+      std_msgs::msg::Header header;
+      header.stamp = now();
+      header.frame_id = frame_id_;
+
+      sensor_msgs::msg::Image left_msg;
+      mat_to_image_msg(frame_left_bgr, "bgr8", header, left_msg);
+      left_pub_->publish(left_msg);
+
+      sensor_msgs::msg::Image right_msg;
+      if (!single_mode_) {
+        cv::cvtColor(frame_right_i420, frame_right_bgr, cv::COLOR_YUV2BGR_I420);
+        mat_to_image_msg(frame_right_bgr, "bgr8", header, right_msg);
+        right_pub_->publish(right_msg);
+      }
+
+      {
+        std::lock_guard<std::mutex> lock(latest_frames_mutex_);
+        latest_left_msg_ = left_msg;
+        if (!single_mode_) {
+          latest_right_msg_ = right_msg;
+        }
+        have_latest_frames_ = true;
+      }
     }
   }
 
@@ -189,22 +233,27 @@ private:
         return;
       }
       left_msg = latest_left_msg_;
-      right_msg = latest_right_msg_;
+      if (!single_mode_) {
+        right_msg = latest_right_msg_;
+      }
     }
 
     left_msg.header.stamp = now();
-    right_msg.header.stamp = left_msg.header.stamp;
     left_throttled_pub_->publish(left_msg);
-    right_throttled_pub_->publish(right_msg);
+    if (!single_mode_) {
+      right_msg.header.stamp = left_msg.header.stamp;
+      right_throttled_pub_->publish(right_msg);
+    }
   }
 
   double acquisition_rate_hz_{20.0};
   double throttled_rate_hz_{1.0};
-  int camera_width_{1280};
-  int camera_height_{720};
+  int camera_width_{640};
+  int camera_height_{480};
   std::string frame_id_;
   std::string left_topic_;
   std::string right_topic_;
+  bool single_mode_{false};
 
   cv::VideoCapture cam0_;
   cv::VideoCapture cam1_;
@@ -213,8 +262,10 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr right_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr left_throttled_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr right_throttled_pub_;
-  rclcpp::TimerBase::SharedPtr acquisition_timer_;
   rclcpp::TimerBase::SharedPtr throttled_timer_;
+
+  std::thread capture_thread_;
+  std::atomic<bool> running_{false};
 
   std::mutex latest_frames_mutex_;
   sensor_msgs::msg::Image latest_left_msg_;
@@ -226,9 +277,12 @@ int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   try {
-    rclcpp::spin(std::make_shared<StereoCameraNode>());
+    auto node = std::make_shared<StereoCameraNode>();
+    rclcpp::spin(node);
   } catch (const std::exception & e) {
     RCLCPP_ERROR(rclcpp::get_logger("stereo_camera"), "Exception: %s", e.what());
+    rclcpp::shutdown();
+    return 1;
   }
   rclcpp::shutdown();
   return 0;
