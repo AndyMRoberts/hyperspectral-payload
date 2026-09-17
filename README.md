@@ -60,7 +60,7 @@ colcon build
 source install/setup.sh
 ```
 
-1. 3D print case parts.
+1. 3D print case parts and add screw inserts x4.
 1. Install hardware into case.
 1. Connect Jetson to the same wifi network as the remote PC, can be a wifi hotspot generated from a laptop.
 1. Import the foxglove layout file (master_layout.json) to either the web or desktop version of the foxglove UI on the remote PC, connect to the IP address of the Jetson. 
@@ -69,12 +69,13 @@ source install/setup.sh
 'ros2 launch hsi_bringup full_system.launch.py run_name:=default_run_name acquisition_rate_hz:=20.0 throttled_rate_hz:=20.0'
 
 ### General Overview
-- Use a launch file to launch the desired nodes with the desired settings
+- SSH onto the device from field laptop.
+- Use a launch file to launch the desired nodes with the desired settings.
 - Via the Foxglove interface you can view the output data and send conrol messages to the system, such as for recording reference images, initiating timelapses, stopping, and shutting down. 
 - Reference images are collected first using the foxglove interface. 
 - Once ready a timelapse can be started, this records the hyperspectral images using the imec_api, and all other sensor data via a rosbag of the relevant topics.
-- Once done, stop the recording via the foxglove interface stop button(rosbag will be corrupt if not shutdown properly), then shutdown the ros system.
-- Safely shutdown the jetson using 'sudo shutdown now'  
+- Once done, stop the recording via the foxglove interface stop button(rosbag will be corrupt if not shutdown properly), then shutdown the ros system from the UI, as well as killing any remaining nodes with 'ctrl + c' from the launch terminal. 
+- Safely shutdown the jetson using 'sudo shutdown now'.
 
 ### Configurations
 - Rosbag recording topics: in order to reduce memory usage the rosbag topic list can be shortened via the exclusion list in camera_commands_controller.py.
@@ -99,7 +100,7 @@ ros2 launch hsi_bringup stereo_only.launch.py run_name:=stereo_rate_testing use_
 
 From the foxglove UI you need to set the integration times, and record calibration images using the buttons and message send options. An example of the interface is shown below:
 
-![Foxglove UI](figures/UI.png)
+![Foxglove UI](figures/foxglove_ui_2.png)
 
 The visible image is in the left panel with nir in the right. The camera sensor temperatures are displayed in the top right panel, these should be stable before recording a session to prevent thermal drift effects in the sensors. The other_sensors tab will show the RGB stereo images and resulting depth image, as well as other sensor outputs like gps. 
 

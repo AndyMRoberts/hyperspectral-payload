@@ -1,10 +1,3 @@
-# Project Folders
-data/
-documentation/
-acquisitions/
-logs/
-
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -281,26 +274,15 @@ calibration_files/nir_context/white_reference
 calibration_files/vis_context/dark_references
 calibration_files/vis_context/non_uniformity
 calibration_files/vis_context/white_reference
-
-
-src/logs/
 output/
-example_code/hsi_mosaic_api/example_resources
-test_code/logs/2026-04-03 angularity_unit.txt
 ros2_ws/src/sensors/stereo_camera/D219-9dof
 
 
 # ROS2 / colcon build artifacts
-ros2_ws/build/
-ros2_ws/install/
-ros2_ws/log/
-ros2_ws/.colcon/
-ros2_ws/.cache/
+build/
+install/
+log/
 
-#acidentally building in the wrong folder
-/install
-/log
-/build
 
 # camera calibration images
 ros2_ws/src/sensors/stereo_camera/camera_calibration/procedures/02-stereo-cameras-calibration/*.pdf
@@ -308,7 +290,10 @@ ros2_ws/src/sensors/stereo_camera/camera_calibration/procedures/01-capture-chess
 ros2_ws/src/sensors/stereo_camera/camera_calibration/procedures/02-stereo-cameras-calibration/images*/
 
 # other folders on main pc
-qgis/
+/qgis/
 .vscode/
 
-
+# Project Folders
+/data/
+/acquisitions/
+logs/
